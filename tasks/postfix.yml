@@ -1,0 +1,223 @@
+- name: "get list of MTA packages (keep only postfix)"
+  shell: |
+      dpkg -l | awk '/^ii/ { print $2 }' \
+      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx' || true 
+  register: unwanted_mtas
+  ignore_errors: true
+
+- name: "show unwanted MTA packages found"
+  debug:
+    msg: >-
+      {{
+        (unwanted_mtas.stdout_lines | length > 0)
+        | ternary("Unwanted MTA packages: " ~ (unwanted_mtas.stdout_lines | join(', ')),
+                  "No unwanted MTA packages found."
+      )
+      }}
+
+- name: "stop unwanted MTA services"
+  service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: "{{ unwanted_mtas.stdout_lines }}"
+  when: unwanted_mtas.stdout_lines | length > 0
+  ignore_errors: true     
+
+- name: "remove unwanted MTA packages"
+  apt:
+      name: "{{ item }}"
+      state: absent
+  loop: "{{ unwanted_mtas.stdout_lines }}"
+  when: unwanted_mtas.stdout_lines | length > 0
+  tags: [remove_mtas]
+
+- name: "preseed Postfix configuration"
+  debconf:
+    name: postfix
+    question: "{{ item.question }}"
+    value: "{{ item.value }}"
+    vtype: "{{ item.vtype }}"
+  loop:
+    - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'select' }
+    - { question: 'postfix/mailname', value: 'yourdomain.tld', vtype: 'string' }
+
+- name: "install Postfix"
+  apt:
+    name: postfix
+    state: present
+    update_cache: yes
+
+- name: "install mailutils"
+  apt:
+    name: mailutils
+    state: present
+    update_cache: yes
+
+- name: "replace relayhost"
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^relayhost\s*='
+    line: 'relayhost =  {{ postfix_relayhost }}'  
+
+- name: "replace myhostname"
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^myhostname\s*='
+    line: 'myhostname = {{ postfix_myhostname}}'
+
+- name: "replace myorigin"
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^myorigin = /etc/mailname'
+    line: 'myorigin = $mydomain'
+
+- name: "replace mydomain"
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^mydomain\s*='
+    line: 'mydomain = {{ postfix_myhostname }}'
+
+- name: "replace smtp_tls_security_level"
+  ansible.builtin.lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^smtp_tls_security_level\s*='
+    line: 'smtp_tls_security_level =  {{ postfix_smtp_tls_security_level }}'  
+
+- name: "ensure canonical file exists with desired mappings"
+  ansible.builtin.template:
+    dest: /etc/postfix/canonical
+    src: canonical.j2
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "ensure generical file exists with desired mappings"
+  ansible.builtin.template:
+    dest: /etc/postfix/generic
+    src: generic.j2
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "rebuild canonical map"
+  ansible.builtin.command: postmap /etc/postfix/canonical
+
+- name: "rebuild generic map"
+  ansible.builtin.command: postmap /etc/postfix/generic
+
+- name: "create sasl_passwd" 
+  copy:
+    dest: /etc/postfix/sasl_passwd
+    content: "{{ postfix_sasl_passwd }}"
+    owner: root
+    group: root
+    mode: "0600"
+  when: use_login
+
+- name: "create hash DB for sasl_passwd"
+  command: postmap /etc/postfix/sasl_passwd
+  when: use_login
+
+- name: "configure main.cf with certs"
+  blockinfile:
+    path: /etc/postfix/main.cf
+    block: |
+      smtp_tls_cert_file = {{ postfix_smtp_tls_cert_file }}
+      smtp_tls_key_file = {{ postfix_smtp_tls_key_file }}
+      smtp_tls_security_level = {{ postfix_smtp_tls_security_level }}
+      smtp_tls_wrappermode = yes
+      smtp_generic_maps = hash:/etc/postfix/generic
+      sender_canonical_maps = hash:/etc/postfix/canonical
+      smtputf8_enable = no
+  when: use_certs
+
+- name: "configure main.cf for login"
+  blockinfile:
+    path: /etc/postfix/main.cf
+    block: |
+      smtp_sasl_auth_enable = yes
+      smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+      smtp_sasl_security_options = noanonymous
+      smtp_sasl_mechanism_filter = plain
+      smtp_use_tls = yes
+      smtp_tls_cert_check = off
+      smtp_tls_wrappermode = no
+      smtp_generic_maps = hash:/etc/postfix/generic
+      sender_canonical_maps = hash:/etc/postfix/canonical
+  when: use_login
+
+
+##Docker settings 
+- name: "create default line in /etc/aliases"
+  lineinfile:
+    state: present
+    path: /etc/aliases
+    create: true
+    owner: root
+    group: root
+    mode: '0644'
+    regexp: '^default:'
+    line: "default: root"
+
+- name: "set up /etc/aliases for postfix"
+  loop:
+    - postmaster
+    - postgres
+    - perun
+    - perunrpc
+    - peruneng
+    - perunldc
+  lineinfile:
+    path: /etc/aliases
+    regexp: "^{{ item }}:"
+    line: "{{ item }}: root"
+    state: present
+
+- name: "run newaliases"
+  command: newaliases
+
+- name: "add docker0 bridge network to /etc/hosts to avoid warnings in log"
+  when: ansible_facts.docker0 is defined
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ ansible_facts.docker0.ipv4.address }} docker0"
+
+- name: "get {{ postfix_for_docker_bridge_network_name }} info"
+  docker_network_info:
+    name: "{{ postfix_for_docker_bridge_network_name }}"
+  register: perun_net_info
+
+- name: "add {{ postfix_for_docker_bridge_network_name }} bridge network gateway to /etc/hosts to avoid warnings in log"
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ perun_net_info.network.IPAM.Config[0].Gateway }} {{ postfix_for_docker_bridge_network_name }}"
+
+- name: "extract subnet"
+  set_fact:
+    perun_net_subnet: "{{ perun_net_info.network.IPAM.Config[0].Subnet }}"
+
+- name: "ensure perun_net subnet is allowed in mynetworks"
+  lineinfile:
+    path: /etc/postfix/main.cf
+    regexp: '^mynetworks ='
+    line: "mynetworks = 127.0.0.0/8, {{ perun_net_subnet }}"
+
+- name: "ensure /usr/sbin/sendmail.postfix symlink exists"
+  file:
+    src: /usr/lib/sendmail
+    dest: /usr/sbin/sendmail.postfix
+    state: link
+    force: yes
+  
+- name: "restart Postfix"
+  systemd:
+    name: postfix
+    state: restarted
+    
+- name: "send test mail using mail command"
+  ansible.builtin.shell: |
+    echo -e "Subject: ToTTTto je testovací e-mail z uvidime.\n\nTelo spravy." | mail {{ testing_email }}
+  args:
+    executable: /bin/bash
+

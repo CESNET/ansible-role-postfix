@@ -1,0 +1,26 @@
+    postfix_myhostname: "example.cz"
+    postfix_mydomain: "{{ postfix_myhostname }} "
+    psotfix_myorigin: "{{ postfix_mydomain }} "
+    postfix_relayhost: "[relay.cz]:587"
+    
+    postfix_use_certs: false
+    postfix_use_login: false    
+    
+    postfix_smtp_tls_cert_file: "path/to/cert.pem"
+    postfix_smtp_tls_key_file: "path/to/key.pem"
+    postfix_smtp_tls_security_level: "encrypt"
+
+    postfix_smtp_password: "test"
+    postfix_smtp_username: "test"
+
+    postfix_canonical_name:  Postfix Canonical
+    postfix_canonical_email: test_canonical@test.cz
+
+    postfix_generic_name: Postfix generic
+    postfix_generic_email: test_generic@test.cz
+
+    postfix_for_docker_bridge_network_name: "docker_test_net"
+
+    postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}" 
+
+    postfix_testing_email: "testing_email@gmail.com"
