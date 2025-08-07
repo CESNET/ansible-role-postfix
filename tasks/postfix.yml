@@ -217,7 +217,7 @@
     
 - name: "send test mail using mail command"
   ansible.builtin.shell: |
-    echo -e "Subject: ToTTTto je testovací e-mail z uvidime.\n\nTelo spravy." | mail {{ testing_email }}
+    echo -e "Subject: ToTTTto je testovací e-mail z uvidime.\n\nTelo spravy." | mail {{ postfix_testing_email }}
   args:
     executable: /bin/bash
 
