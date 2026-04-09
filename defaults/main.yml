@@ -13,10 +13,8 @@
     postfix_smtp_password: "test"
     postfix_smtp_username: "test"
 
-    postfix_canonical_name:  Postfix Canonical
     postfix_canonical_email: test_canonical@test.cz
 
-    postfix_generic_name: Postfix generic
     postfix_generic_email: test_generic@test.cz
 
     postfix_for_docker_bridge_network_name: "docker_test_net"
