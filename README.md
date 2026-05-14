@@ -45,8 +45,8 @@ Role vars:
     postfix_mydomain: "example.com"
     postfix_myorigin: "{{ postfix_mydomain }}"
     postfix_relayhost: "[smtp.relay.com]:587"
-    use_certs: false
-    use_login: true
+    postfix_use_certs: false
+    postfix_use_login: true
     postfix_smtp_tls_cert_file: "/etc/ssl/certs/mail.crt"
     postfix_smtp_tls_key_file: "/etc/ssl/private/mail.key"
     postfix_smtp_tls_security_level: "encrypt"
@@ -56,7 +56,7 @@ Role vars:
     postfix_generic_email: "test@example.com"
     postfix_for_docker_bridge_network_name: "postfix_network"
     postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}"   
-    postfix_testing_email: testint@email.com
+    postfix_testing_email: testing@email.com
   roles:
     - cesnet.postfix
 ```
