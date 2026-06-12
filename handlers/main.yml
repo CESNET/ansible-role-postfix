@@ -1,0 +1,45 @@
+- name: rebuild aliases
+  command: newaliases
+
+- name: rebuild canonical map
+  ansible.builtin.command: postmap /etc/postfix/canonical
+
+- name: rebuild generic map
+  ansible.builtin.command: postmap /etc/postfix/generic
+
+- name: start postfix
+  ansible.builtin.systemd_service:
+    name: postfix
+    state: started
+    enabled: yes
+  listen: validate configuration and reload postfix
+
+- name: validate configuration and reload postfix
+  ansible.builtin.command:
+    cmd: postfix reload
+  register: postfix_command
+
+- name: show configuration warnings
+  ansible.builtin.debug:
+    var: "postfix_command.stderr_lines"
+  when: postfix_command is defined and postfix_command.stderr_lines | length > 1
+  listen: validate configuration and reload postfix
+  changed_when: true
+
+- name: restart postfix
+  ansible.builtin.systemd_service:
+    name: postfix
+    state: restarted
+  register: restart_postfix_result
+
+
+- name: send test email
+  ansible.builtin.shell: |
+    mail -s "Test e-mail from $HOSTNAME" '{{ postfix_testing_email }}' \
+    <<<"Test e-mail due to postfix configuration changes from cesnet.postfix Ansible role.
+
+    $(postconf mydomain myhostname myorigin relayhost smtp_tls_security_level inet_interfaces mynetworks)
+
+    Docker network: {{ postfix_for_docker_bridge_network_name }}"
+  args:
+    executable: /bin/bash
