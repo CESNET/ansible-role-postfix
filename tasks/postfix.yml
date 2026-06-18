@@ -43,6 +43,22 @@
     - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'select' }
     - { question: 'postfix/mailname', value: "{{ postfix_myhostname }}", vtype: 'string' }
 
+- name: Configure startup after docker.service
+  # Ensures that the networks are configured at startup
+  block:
+    - name: Create /etc/systemd/system/postfix.service.d
+      ansible.builtin.file:
+        path: /etc/systemd/system/postfix.service.d
+        state: directory
+
+    - name: Place systemd config postfix.service.d/after-docker.conf
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/postfix.service.d/after-docker.conf
+        content: |
+          [Unit]
+          After=docker.service
+          Wants=docker.service
+
 - name: "install Postfix"
   apt:
     name: postfix
