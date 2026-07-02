@@ -73,6 +73,13 @@
 
 - name: configure postfix
   block:
+    - name: disable scache statistics
+      ansible.builtin.lineinfile:
+        path: /etc/postfix/main.cf
+        regexp: '^connection_cache_status_update_time[\s]*=$'
+        line: connection_cache_status_update_time =
+      notify: validate configuration and reload postfix
+
     - name: "replace relayhost"
       ansible.builtin.lineinfile:
         path: /etc/postfix/main.cf
