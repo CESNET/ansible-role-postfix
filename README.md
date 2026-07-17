@@ -39,7 +39,7 @@ Role vars:
 
 ```yaml
 - hosts:
-    - "some-random-name.my-cloud.org"
+    - "some-random-name.example.com"
   vars:
     postfix_myhostname: "mail.example.com"
     postfix_mydomain: "example.com"
