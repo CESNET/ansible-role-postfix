@@ -13,8 +13,8 @@ postfix_smtp_tls_security_level: "encrypt"
 # postfix_smtp_username: Sender.Login@example.com
 # postfix_smtp_password: SecurePassword688
 
-postfix_canonical_email: "root@{{ postfix_myhostname }}"
-postfix_generic_email: "root@{{ postfix_myhostname }}"
+# postfix_canonical_email: "root@{{ postfix_myhostname }}"
+# postfix_generic_email: "root@{{ postfix_myhostname }}"
 
 postfix_for_docker_bridge_network_name: "docker_test_net"
 

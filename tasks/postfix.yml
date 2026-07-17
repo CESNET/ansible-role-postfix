@@ -143,24 +143,46 @@
         - validate configuration and reload postfix
 
     - name: "ensure canonical file exists with desired mappings"
-      ansible.builtin.template:
-        dest: /etc/postfix/canonical
-        src: canonical.j2
-        owner: root
-        group: root
-        mode: '0644'
+      block:
+        - name: Configure canonical mappings
+          ansible.builtin.template:
+            dest: /etc/postfix/canonical
+            src: canonical.j2
+            owner: root
+            group: root
+            mode: '0644'
+          when: postfix_canonical_email is defined and postfix_canonical_email | length > 2
+        - name: Clean canonical mappings
+          ansible.builtin.copy:
+            dest: /etc/postfix/canonical
+            content: ""
+            owner: root
+            group: root
+            mode: '0644'
+          when: postfix_canonical_email is undefined or postfix_canonical_email | length == 0
       notify:
         - rebuild canonical map
         - validate configuration and reload postfix
         - send test email
 
     - name: "ensure generical file exists with desired mappings"
-      ansible.builtin.template:
-        dest: /etc/postfix/generic
-        src: generic.j2
-        owner: root
-        group: root
-        mode: '0644'
+      block:
+        - name: Configure generic mappings
+          ansible.builtin.template:
+            dest: /etc/postfix/generic
+            src: generic.j2
+            owner: root
+            group: root
+            mode: '0644'
+          when: postfix_generic_email is defined and postfix_generic_email | length > 2
+        - name: Clean generic mappings
+          ansible.builtin.copy:
+            dest: /etc/postfix/generic
+            content: ""
+            owner: root
+            group: root
+            mode: '0644'
+          when: postfix_generic_email is undefined or postfix_generic_email | length == 0
       notify:
         - rebuild generic map
         - validate configuration and reload postfix
