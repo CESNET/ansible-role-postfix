@@ -46,7 +46,7 @@ Role vars:
     postfix_myorigin: "{{ postfix_mydomain }}"
     postfix_relayhost: "[smtp.relay.com]:587"
     postfix_use_certs: false
-    postfix_use_login: true
+    postfix_use_login: false
     postfix_smtp_tls_cert_file: "/etc/ssl/certs/mail.crt"
     postfix_smtp_tls_key_file: "/etc/ssl/private/mail.key"
     postfix_smtp_tls_security_level: "encrypt"
