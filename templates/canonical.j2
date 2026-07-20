@@ -1,2 +1,4 @@
+{% if postfix_canonical_email is defined and postfix_canonical_email | length > 2 %}
 root {{ postfix_canonical_email }}
 perun {{ postfix_canonical_email }}
+{% endif %}

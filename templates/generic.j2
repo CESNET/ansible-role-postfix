@@ -1,2 +1,4 @@
+{% if postfix_generic_email is defined and postfix_generic_email | length > 2 %}
 root@{{ postfix_myhostname }} {{ postfix_generic_email }}
 perun@{{ postfix_myhostname }} {{ postfix_generic_email }}
+{% endif %}
