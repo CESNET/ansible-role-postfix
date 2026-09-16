@@ -1,7 +1,7 @@
 - name: "get list of MTA packages (keep only postfix)"
   shell: |
       dpkg -l | awk '/^ii/ { print $2 }' \
-      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx' || true 
+      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx' || true
   register: unwanted_mtas
   ignore_errors: true
   changed_when: false
@@ -23,7 +23,7 @@
     enabled: false
   loop: "{{ unwanted_mtas.stdout_lines }}"
   when: unwanted_mtas.stdout_lines | length > 0
-  ignore_errors: true     
+  ignore_errors: true
 
 - name: "remove unwanted MTA packages"
   apt:
@@ -88,14 +88,6 @@
       notify:
         - validate configuration and reload postfix
         - send test email
-
-    - name: configure mydestination
-      ansible.builtin.lineinfile:
-        path: /etc/postfix/main.cf
-        regexp: '^mydestination[\s]*='
-        line: mydestination =
-      notify:
-        - validate configuration and reload postfix
 
     - name: "replace myhostname"
       ansible.builtin.lineinfile:
@@ -177,7 +169,6 @@
       notify:
         - validate configuration and reload postfix
 
-
     - name: "create hash DB for sasl_passwd"
       command: postmap /etc/postfix/sasl_passwd
       when: postfix_use_login
@@ -219,39 +210,6 @@
         - send test email
 
     #Docker settings
-    - name: "create default line in /etc/aliases"
-      lineinfile:
-        state: present
-        path: /etc/aliases
-        create: true
-        owner: root
-        group: root
-        mode: '0644'
-        regexp: '^default:'
-        line: "default: root"
-      notify:
-        - rebuild aliases
-        - validate configuration and reload postfix
-        - send test email
-
-    - name: "set up /etc/aliases for postfix"
-      loop:
-        - postmaster
-        - postgres
-        - perun
-        - perunrpc
-        - peruneng
-        - perunldc
-      lineinfile:
-        path: /etc/aliases
-        regexp: "^{{ item }}:"
-        line: "{{ item }}: root"
-        state: present
-      notify:
-        - rebuild aliases
-        - validate configuration and reload postfix
-        - send test email
-
     - name: "get {{ postfix_for_docker_bridge_network_name }} info"
       docker_network_info:
         name: "{{ postfix_for_docker_bridge_network_name }}"
@@ -285,10 +243,3 @@
         - validate configuration and reload postfix
         - restart postfix
         - send test email
-
-    - name: "ensure /usr/sbin/sendmail.postfix symlink exists"
-      file:
-        src: /usr/lib/sendmail
-        dest: /usr/sbin/sendmail.postfix
-        state: link
-        force: yes
