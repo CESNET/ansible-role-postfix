@@ -1,7 +1,7 @@
 - name: "get list of MTA packages (keep only postfix)"
   shell: |
       dpkg -l | awk '/^ii/ { print $2 }' \
-      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx' || true
+      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx|postfix-mta-sts-resolver' || true
   register: unwanted_mtas
   ignore_errors: true
   changed_when: false
@@ -29,6 +29,7 @@
   apt:
     name: "{{ item }}"
     state: absent
+    autoremove: true
   loop: "{{ unwanted_mtas.stdout_lines }}"
   when: unwanted_mtas.stdout_lines | length > 0
   tags: [remove_mtas]
@@ -76,8 +77,8 @@
     - name: disable scache statistics
       ansible.builtin.lineinfile:
         path: /etc/postfix/main.cf
-        regexp: '^connection_cache_status_update_time[\s]*=$'
-        line: connection_cache_status_update_time =
+        regexp: '^connection_cache_status_update_time[\s]*='
+        line: connection_cache_status_update_time = 2147483647
       notify: validate configuration and reload postfix
 
     - name: "replace relayhost"
