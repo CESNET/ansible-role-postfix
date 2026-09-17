@@ -1,7 +1,7 @@
 - name: "get list of MTA packages (keep only postfix)"
   shell: |
       dpkg -l | awk '/^ii/ { print $2 }' \
-      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx' || true 
+      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx|postfix-mta-sts-resolver' || true
   register: unwanted_mtas
   ignore_errors: true
   changed_when: false
@@ -29,6 +29,7 @@
   apt:
     name: "{{ item }}"
     state: absent
+    autoremove: true
   loop: "{{ unwanted_mtas.stdout_lines }}"
   when: unwanted_mtas.stdout_lines | length > 0
   tags: [remove_mtas]
