@@ -18,6 +18,17 @@ postfix_smtp_tls_security_level: "encrypt"
 
 postfix_for_docker_bridge_network_name: "docker_test_net"
 
-postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}" 
+postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}"
 
 postfix_testing_email: "postfix@{{ postfix_myhostname }}"
+
+# Uninstall following packages prior postfix installation to make sure there is no conflict
+# postfix-mta-sts-resolver is acutally installed by sendmail (not necessary when we contact relay and don't deliver emails directly)
+postfix_conflict_mta_packages:
+  - sendmail
+  - exim
+  - ssmtp
+  - nullmailer
+  - msmtp
+  - bsd-mailx
+  - postfix-mta-sts-resolver
