@@ -1,38 +1,9 @@
-- name: "get list of MTA packages (keep only postfix)"
-  shell: |
-      dpkg -l | awk '/^ii/ { print $2 }' \
-      | grep -E 'sendmail|exim|ssmtp|nullmailer|msmtp|bsd-mailx|postfix-mta-sts-resolver' || true
-  register: unwanted_mtas
-  ignore_errors: true
-  changed_when: false
-
-- name: "show unwanted MTA packages found"
-  debug:
-    msg: >-
-      {{
-        (unwanted_mtas.stdout_lines | length > 0)
-        | ternary("Unwanted MTA packages: " ~ (unwanted_mtas.stdout_lines | join(', ')),
-                  "No unwanted MTA packages found."
-      )
-      }}
-
-- name: "stop unwanted MTA services"
-  service:
-    name: "{{ item }}"
-    state: stopped
-    enabled: false
-  loop: "{{ unwanted_mtas.stdout_lines }}"
-  when: unwanted_mtas.stdout_lines | length > 0
-  ignore_errors: true
-
 - name: "remove unwanted MTA packages"
-  apt:
-    name: "{{ item }}"
+  ansible.builtin.apt:
+    name: "{{ postfix_conflict_mta_packages }}"
     state: absent
-    autoremove: true
-  loop: "{{ unwanted_mtas.stdout_lines }}"
-  when: unwanted_mtas.stdout_lines | length > 0
-  tags: [remove_mtas]
+    autoremove: yes
+    purge: true
 
 - name: "preseed Postfix configuration"
   debconf:
@@ -44,7 +15,7 @@
     - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'select' }
     - { question: 'postfix/mailname', value: "{{ postfix_myhostname }}", vtype: 'string' }
 
-- name: Configure startup after docker.service
+- name: "Configure startup after docker.service"
   # Ensures that the networks are configured at startup
   block:
     - name: Create /etc/systemd/system/postfix.service.d
@@ -72,7 +43,7 @@
     state: present
     update_cache: yes
 
-- name: configure postfix
+- name: "configure postfix"
   block:
     - name: disable scache statistics
       ansible.builtin.lineinfile:
