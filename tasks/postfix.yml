@@ -215,3 +215,6 @@
         - validate configuration and reload postfix
         - restart postfix
         - send test email
+
+- name: "flush handlers"
+  meta: flush_handlers
