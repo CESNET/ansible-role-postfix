@@ -40,6 +40,6 @@
 
     $(postconf mydomain myhostname myorigin relayhost smtp_tls_security_level inet_interfaces mynetworks)
 
-    Docker network: {{ postfix_for_docker_bridge_network_name }}"
+    Docker network: {{ postfix_docker_bridge_network_name }}"
   args:
     executable: /bin/bash
