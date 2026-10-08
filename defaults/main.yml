@@ -1,4 +1,4 @@
-postfix_myhostname: "{{ ansible_fqdn }}"
+postfix_myhostname: "{{ ansible_facts['fqdn'] }}"
 postfix_mydomain: "{{ postfix_myhostname }}"
 postfix_myorigin: "{{ postfix_mydomain }}"
 postfix_relayhost: "[relay.example.com]:587"
@@ -27,6 +27,9 @@ postfix_docker_bridge_network_name: "docker_test_net"
 
 # After successfull install/config you will get email with a summary on this address
 postfix_testing_email: "postfix@{{ postfix_myhostname }}"
+
+# Set mail alias for root account
+#postfix_root_email_address: support@example.org
 
 # Uninstall following packages prior postfix installation to make sure there is no conflict
 # postfix-mta-sts-resolver is acutally installed by sendmail (not necessary when we contact relay and don't deliver emails directly)
