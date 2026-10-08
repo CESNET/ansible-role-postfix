@@ -1,3 +1,10 @@
+- name: "check that variables postfix_root_email_address is defined"
+  assert:
+    that:
+      - postfix_root_email_address is defined
+    msg: "Define variable postfix_root_email_address !"
+    quiet: true
+
 - name: "remove unwanted MTA packages"
   ansible.builtin.apt:
     name: "{{ postfix_conflict_mta_packages }}"
@@ -248,6 +255,18 @@
             - validate configuration and reload postfix
             - restart postfix
             - send test email
+
+- name: "set root mail alias"
+  lineinfile:
+    state: present
+    path: /etc/aliases
+    create: true
+    owner: root
+    group: root
+    mode: '0644'
+    regexp: "^root:"
+    line: "root: {{ postfix_root_email_address }}"
+  notify: "run newaliases"
 
 - name: "flush handlers"
   meta: flush_handlers
