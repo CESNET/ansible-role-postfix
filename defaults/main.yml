@@ -3,23 +3,29 @@ postfix_mydomain: "{{ postfix_myhostname }}"
 postfix_myorigin: "{{ postfix_mydomain }}"
 postfix_relayhost: "[relay.example.com]:587"
 
-postfix_use_certs: false
+# Authentication mode (by default we connect to relayhost without authentication)
 postfix_use_login: false
+postfix_use_certs: false
 
+# Credentials for when postfix_use_login is true
+postfix_smtp_username: Sender.Login@example.com
+postfix_smtp_password: SecurePassword688
+postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}"
+
+# TLS
 postfix_smtp_tls_cert_file: "path/to/cert.pem"
 postfix_smtp_tls_key_file: "path/to/key.pem"
 postfix_smtp_tls_security_level: "encrypt"
 
-# postfix_smtp_username: Sender.Login@example.com
-# postfix_smtp_password: SecurePassword688
+# enable when apps in local docker network should be able to send emails and set name of the docker network
+postfix_with_docker: false
+postfix_docker_bridge_network_name: "docker_test_net"
 
+# Overrides (rewrites From/To for local addresses)
 # postfix_canonical_email: "root@{{ postfix_myhostname }}"
 # postfix_generic_email: "root@{{ postfix_myhostname }}"
 
-postfix_for_docker_bridge_network_name: "docker_test_net"
-
-postfix_sasl_passwd: "{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}"
-
+# After successfull install/config you will get email with a summary on this address
 postfix_testing_email: "postfix@{{ postfix_myhostname }}"
 
 # Uninstall following packages prior postfix installation to make sure there is no conflict

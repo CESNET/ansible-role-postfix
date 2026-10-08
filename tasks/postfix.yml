@@ -15,8 +15,9 @@
     - { question: 'postfix/main_mailer_type', value: 'Internet Site', vtype: 'select' }
     - { question: 'postfix/mailname', value: "{{ postfix_myhostname }}", vtype: 'string' }
 
+# Ensures that docker networks are configured at startup
 - name: "Configure startup after docker.service"
-  # Ensures that the networks are configured at startup
+  when: postfix_with_docker
   block:
     - name: Create /etc/systemd/system/postfix.service.d
       ansible.builtin.file:
@@ -30,6 +31,13 @@
           [Unit]
           After=docker.service
           Wants=docker.service
+
+# clear dependency when not used with Docker
+- name: "Remove startup after docker.service"
+  when: not postfix_with_docker
+  file:
+    path: /etc/systemd/system/postfix.service.d/after-docker.conf
+    state: absent
 
 - name: "install Postfix"
   apt:
@@ -97,7 +105,7 @@
         - validate configuration and reload postfix
         - send test email
 
-    - name: Configure smtpd_tls_security_level
+    - name: "Configure smtpd_tls_security_level"
       # Assumption: postfix is operating only on local network interface, no encryption for local traffic is needed
       lineinfile:
         path: /etc/postfix/main.cf
@@ -181,40 +189,65 @@
         - validate configuration and reload postfix
         - send test email
 
-    #Docker settings
-    - name: "get {{ postfix_for_docker_bridge_network_name }} info"
-      docker_network_info:
-        name: "{{ postfix_for_docker_bridge_network_name }}"
-      register: perun_net_info
+    # Docker settings
+    - name: "configure postfix for docker"
+      when: postfix_with_docker
+      block:
+        - name: "get {{ postfix_docker_bridge_network_name }} info"
+          docker_network_info:
+            name: "{{ postfix_docker_bridge_network_name }}"
+          register: perun_net_info
 
-    - name: "add {{ postfix_for_docker_bridge_network_name }} bridge network gateway to /etc/hosts to avoid warnings in log"
-      lineinfile:
-        path: /etc/hosts
-        line: "{{ item }} {{ postfix_for_docker_bridge_network_name }}"
-      with_list: "{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Gateway') }}"
+        - name: "add {{ postfix_docker_bridge_network_name }} bridge network gateway to /etc/hosts to avoid warnings in log"
+          lineinfile:
+            path: /etc/hosts
+            line: "{{ item }} {{ postfix_docker_bridge_network_name }}"
+          with_list: "{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Gateway') }}"
 
-    - name: "extract subnets"
-      set_fact:
-        perun_net_subnets: "{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Subnet') }}"
+        - name: "extract subnets"
+          set_fact:
+            perun_net_subnets: "{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Subnet') }}"
 
-    - name: "ensure perun_net subnets are allowed in mynetworks"
-      lineinfile:
-        path: /etc/postfix/main.cf
-        regexp: '^mynetworks ='
-        line: "mynetworks = 127.0.0.0/8, [::1/128], [{{ perun_net_subnets | join('], [') }}]"
-      notify:
-       - validate configuration and reload postfix
-       - send test email
+        - name: "ensure perun_net subnets are allowed in mynetworks"
+          lineinfile:
+            path: /etc/postfix/main.cf
+            regexp: '^mynetworks ='
+            line: "mynetworks = 127.0.0.0/8, [::1]/128, [{{ perun_net_subnets | join('], [') }}]"
+          notify:
+           - validate configuration and reload postfix
+           - send test email
 
-    - name: configure inet_interfaces
-      ansible.builtin.lineinfile:
-        path: /etc/postfix/main.cf
-        regexp: '^inet_interfaces'
-        line: "inet_interfaces = 127.0.0.1, [::1], [{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Gateway') | join('], [') }}]"
-      notify:
-        - validate configuration and reload postfix
-        - restart postfix
-        - send test email
+        - name: "configure inet_interfaces"
+          ansible.builtin.lineinfile:
+            path: /etc/postfix/main.cf
+            regexp: '^inet_interfaces'
+            line: "inet_interfaces = 127.0.0.1, [::1], [{{ perun_net_info.network.IPAM.Config | community.general.json_query('[].Gateway') | join('], [') }}]"
+          notify:
+            - validate configuration and reload postfix
+            - restart postfix
+            - send test email
+
+    - name: "configure postfix without docker"
+      when: not postfix_with_docker
+      block:
+        - name: "configure mynetworks"
+          lineinfile:
+            path: /etc/postfix/main.cf
+            regexp: '^mynetworks ='
+            line: "mynetworks = 127.0.0.0/8, [::1]/128"
+          notify:
+           - validate configuration and reload postfix
+           - send test email
+
+        - name: "configure inet_interfaces"
+          ansible.builtin.lineinfile:
+            path: /etc/postfix/main.cf
+            regexp: '^inet_interfaces'
+            line: "inet_interfaces = 127.0.0.1, [::1]"
+          notify:
+            - validate configuration and reload postfix
+            - restart postfix
+            - send test email
 
 - name: "flush handlers"
   meta: flush_handlers

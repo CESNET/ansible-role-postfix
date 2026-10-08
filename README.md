@@ -1,29 +1,33 @@
 postfix
 ==========
 
-Ansible role for install MTA Postfix on Debian 11+. 
+Ansible role for installation of Postfix on Debian 11+.
+
+For dockerized environment be sure to set `postfix_with_docker: true` and 
+set name of your docker network in `postfix_docker_bridge_network_name`.
+
 
 Role vars:
 -------------
 
-| Variable                                   | Description |
-|--------------------------------------------|-------------|
-| `postfix_myhostname`                       | Fully Qualified Domain Name (FQDN) used by Postfix to identify itself in SMTP communication. |
-| `postfix_mydomain`                         | Domain name of the server; usually the part after the first dot in `myhostname`. |
-| `postfix_myorigin`                         | Domain appended to outgoing mail without a domain; typically `{{ postfix_mydomain }}`. |
-| `postfix_relayhost`                        | Optional SMTP relay through which all outgoing mail is sent (e.g., `[smtp.example.com]:587`). |
-| `postfix_use_certs`                        | If `true`, enables TLS certificates for securing SMTP connections. |
-| `postfix_use_login`                        | If `true`, enables SMTP authentication with username and password. |
-| `postfix_smtp_tls_cert_file`               | Path to the TLS certificate file used by Postfix. |
-| `postfix_smtp_tls_key_file`                | Path to the private key file used by Postfix. |
-| `postfix_smtp_tls_security_level`          | TLS security mode for SMTP connections (e.g., `encrypt`, `may`). |
-| `postfix_smtp_password`                    | Password for SMTP authentication. |
-| `postfix_smtp_username`                    | Username for SMTP authentication. |
-| `postfix_sasl_passwd`                      | SASL credentials for relay host in format: `relayhost username:password`. Built automatically as `{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}`. |
-| `postfix_canonical_email`                  | Email address used for canonical address mapping (rewriting sender email). |
-| `postfix_generic_email`                    | Email address used for generic address mapping (rewriting recipient email). |
-| `postfix_for_docker_bridge_network_name`   | Name of the Docker bridge network Postfix should bind to (if running inside Docker). |
-| `postfix_testing_email`                    | Email for sending testing email. |
+| Variable                                | Description                                                                                                                                                                                                                                                       |
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `postfix_myhostname`                    | FQDN of server, used by Postfix to identify itself in SMTP communication, eg: `smtp.example.com`                                                                                                                                                                  |
+| `postfix_mydomain`                      | Domain name of server, usually the part after the first dot in `postfix_myhostname`; default `{{ postfix_myhostname }}`                                                                                                                                           |
+| `postfix_myorigin`                      | Domain appended to outgoing mails with "To:" without a domain; default `{{ postfix_mydomain }}`.                                                                                                                                                                  |
+| `postfix_relayhost`                     | Optional SMTP relay through which all outgoing mails are sent (e.g., `[smtp.example.com]:587`).                                                                                                                                                                   |
+| `postfix_use_certs`                     | If `true`, enables TLS certificates for securing SMTP connections.                                                                                                                                                                                                |
+| `postfix_use_login`                     | If `true`, enables SMTP authentication with username and password.                                                                                                                                                                                                |
+| `postfix_smtp_tls_cert_file`            | Path to the TLS certificate file used by Postfix.                                                                                                                                                                                                                 |
+| `postfix_smtp_tls_key_file`             | Path to the private key file used by Postfix.                                                                                                                                                                                                                     |
+| `postfix_smtp_tls_security_level`       | TLS security mode for SMTP connections (e.g., `encrypt`, `may`).                                                                                                                                                                                                  |
+| `postfix_smtp_password`                 | Password for SMTP authentication.                                                                                                                                                                                                                                 |
+| `postfix_smtp_username`                 | Username for SMTP authentication.                                                                                                                                                                                                                                 |
+| `postfix_sasl_passwd`                   | SASL credentials for relay host in format: `relayhost username:password`. Built automatically as `{{ postfix_relayhost }} {{ postfix_smtp_username }}:{{ postfix_smtp_password }}`.                                                                               |
+| `postfix_canonical_email`               | Address replacing "From/To" for local senders/recipients root and perun (even /etc/aliases is ignored).                                                                                                                                                           |
+| `postfix_generic_email`                 | Address replacing "From" for local senders root and perun (eg. root@fqdn -> support@example.com). Usefull when your host FQDN doesn't have valid SPF, DKIM and you want to replace it with a correct email address (eg. real address acceptable by another relay) |
+| `postfix_docker_bridge_network_name`    | Name of the Docker bridge network Postfix should bind to (if running along side Docker and apps in docker should send emails).                                                                                                                                    |
+| `postfix_testing_email`                 | Address for sending testing email to.                                                                                                                                                                                                                             |
 
 
 
