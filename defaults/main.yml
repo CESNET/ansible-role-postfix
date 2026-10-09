@@ -35,6 +35,9 @@ postfix_testing_email: "postfix@{{ postfix_myhostname }}"
 # postfix-mta-sts-resolver is acutally installed by sendmail (not necessary when we contact relay and don't deliver emails directly)
 postfix_conflict_mta_packages:
   - sendmail
+  - sendmail-base
+  - sendmail-bin
+  - sendmail-cf
   - exim
   - ssmtp
   - nullmailer
