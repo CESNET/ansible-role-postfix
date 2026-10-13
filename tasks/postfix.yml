@@ -267,6 +267,21 @@
     regexp: "^root:"
     line: "root: {{ postfix_root_email_address }}"
   notify: "run newaliases"
+  tags:
+    - aliases
+
+- name: "set up mail alias for postfix/postmaster"
+  loop:
+    - postmaster
+    - postfix
+  lineinfile:
+    path: /etc/aliases
+    regexp: "^{{ item }}:"
+    line: "{{ item }}: root"
+    state: present
+  notify: "run newaliases"
+  tags:
+    - aliases
 
 - name: "flush handlers"
   meta: flush_handlers
