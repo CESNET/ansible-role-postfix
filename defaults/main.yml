@@ -44,3 +44,9 @@ postfix_conflict_mta_packages:
   - msmtp
   - bsd-mailx
   - postfix-mta-sts-resolver
+
+# You can append custom config options in /etc/postfix/main.cf, eg. masquerading, just don't override those managed by other vars.
+#postfix_additional_config: |
+#  #masquerade_domains: mydomain.com
+#  #masquerade_exceptions: root
+#  #masquerade_classes: envelope_sender, header_sender
