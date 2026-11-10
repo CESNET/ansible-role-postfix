@@ -196,6 +196,16 @@
         - validate configuration and reload postfix
         - send test email
 
+    - name: "configure custom config in main.cf"
+      ansible.builtin.blockinfile:
+        path: /etc/postfix/main.cf
+        block: "{{ postfix_additional_config | default('') }}"
+        marker: "# {mark} ANSIBLE MANAGED BLOCK - ADDITIONAL CONFIG"
+        state: "{{ (postfix_additional_config is defined and postfix_additional_config | trim | length > 0) | ternary('present', 'absent') }}"
+      notify:
+        - validate configuration and reload postfix
+        - send test email
+
     # Docker settings
     - name: "configure postfix for docker"
       when: postfix_with_docker

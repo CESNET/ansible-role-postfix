@@ -41,7 +41,6 @@
     state: restarted
   register: restart_postfix_result
 
-
 - name: send test email
   ansible.builtin.shell: |
     mail -s "Test e-mail from $HOSTNAME" '{{ postfix_testing_email }}' \
@@ -49,6 +48,12 @@
 
     $(postconf mydomain myhostname myorigin relayhost smtp_tls_security_level inet_interfaces mynetworks)
 
-    Docker network: {{ postfix_docker_bridge_network_name }}"
+    Docker network: {{ postfix_docker_bridge_network_name }}
+
+    {% if postfix_additional_config is defined and postfix_additional_config | trim | length > 0 %}
+    Additional custom config:
+
+    {{ postfix_additional_config  }}
+    {% endif %}"
   args:
     executable: /bin/bash
